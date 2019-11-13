@@ -1,0 +1,214 @@
+[TITLE]
+;;Project Title/Notes
+
+[OPTIONS]
+;;Option             Value
+FLOW_UNITS           CFS
+INFILTRATION         HORTON
+FLOW_ROUTING         DYNWAVE
+LINK_OFFSETS         DEPTH
+MIN_SLOPE            0
+ALLOW_PONDING        NO
+SKIP_STEADY_STATE    NO
+
+START_DATE           01/01/2010
+START_TIME           00:00:00
+REPORT_START_DATE    01/01/2010
+REPORT_START_TIME    00:00:00
+END_DATE             12/31/2010
+END_TIME             23:45:00
+SWEEP_START          01/01
+SWEEP_END            12/31
+DRY_DAYS             0
+REPORT_STEP          00:15:00
+WET_STEP             00:15:00
+DRY_STEP             02:00:00
+ROUTING_STEP         0:00:10 
+
+INERTIAL_DAMPING     PARTIAL
+NORMAL_FLOW_LIMITED  BOTH
+FORCE_MAIN_EQUATION  H-W
+VARIABLE_STEP        0.75
+LENGTHENING_STEP     0
+MIN_SURFAREA         12.557
+MAX_TRIALS           8
+HEAD_TOLERANCE       0.005
+SYS_FLOW_TOL         5
+LAT_FLOW_TOL         5
+
+[EVAPORATION]
+;;Data Source    Parameters
+;;-------------- ----------------
+TEMPERATURE 
+DRY_ONLY         NO
+
+[TEMPERATURE]
+;;Data Element     Values     
+FILE               "Washington_Temp.dat"
+WINDSPEED MONTHLY  0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+SNOWMELT           34 0.5 0.6 0.0 50.0 0.0
+ADC IMPERVIOUS     1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+ADC PERVIOUS       1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+
+[RAINGAGES]
+;;Name           Format    Interval SCF      Source    
+;;-------------- --------- ------ ------ ----------
+1                VOLUME    0:15     1.0      TIMESERIES TS              
+
+[SUBCATCHMENTS]
+;;Name           Rain Gage        Outlet           Area     %Imperv  Width    %Slope   CurbLen  SnowPack        
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- -------- ----------------
+2                1                J1               472.8    1.9      3173.49  8        0                        
+3                1                J1               2988     10.15    15285    8        0                        
+
+[SUBAREAS]
+;;Subcatchment   N-Imperv   N-Perv     S-Imperv   S-Perv     PctZero    RouteTo    PctRouted 
+;;-------------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+2                0.015      0.28       0.14       0.08       25         OUTLET    
+3                0.015      0.28       0.14       0.08       25         OUTLET    
+
+[INFILTRATION]
+;;Subcatchment   MaxRate    MinRate    Decay      DryTime    MaxInfil  
+;;-------------- ---------- ---------- ---------- ---------- ----------
+2                3.442      0.0772     3.24       0.0252     0         
+3                3.442      0.0772     3.24       0.0252     0         
+
+[AQUIFERS]
+;;Name           Por    WP     FC     Ksat   Kslope Tslope ETu    ETs    Seep   Ebot   Egw    Umc    ETupat 
+;;-------------- ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------
+Aquifer1         0.46   0.1198 0.28   0.7    10.0   15     0.35   14.0   0.002  310    380    0.30         
+
+[GROUNDWATER]
+;;Subcatchment   Aquifer          Node             Esurf  A1     B1     A2     B2     A3     Dsw    Egwt   Ebot   Wgr    Umc   
+;;-------------- ---------------- ---------------- ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------
+2                Aquifer1         J1               385    0.0000375 0      1      1      0.0000375 -1     *     
+3                Aquifer1         J1               385    0.0000375 0      1      1      0.0000375 -1     *     
+
+[JUNCTIONS]
+;;Name           Elevation  MaxDepth   InitDepth  SurDepth   Aponded   
+;;-------------- ---------- ---------- ---------- ---------- ----------
+J1               371.7      0          0          0          0         
+
+[OUTFALLS]
+;;Name           Elevation  Type       Stage Data       Gated    Route To        
+;;-------------- ---------- ---------- ---------------- -------- ----------------
+4                0          FREE                        NO                       
+
+[CONDUITS]
+;;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
+;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
+1                J1               4                400        0.01       0          0          0          0         
+
+[XSECTIONS]
+;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels    Culvert   
+;;-------------- ------------ ---------------- ---------- ---------- ---------- ---------- ----------
+1                CIRCULAR     1                0          0          0          1                    
+
+[TRANSECTS]
+;;Transect Data in HEC-2 format
+;
+NC 0.07     0.05     0.07    
+X1 X1                123      217.61   314.41   0.0      0.0      0.0      0.0      0.0     
+GR 384.33   0        384.4    1.72     384.42   2.12     384.64   3.34     384.86   4.37    
+GR 384.89   4.66     384.9    4.77     384.9    4.95     384.88   5.12     384.87   5.29    
+GR 384.39   8.01     384.37   8.37     384.29   8.91     383.6    12.08    382.97   15.3    
+GR 382.58   17.07    381.78   20.56    381.58   21.31    380      26.38    380      27.05   
+GR 380      27.27    380      27.43    378.73   32.38    375      47.47    371.33   66.05   
+GR 370.45   70.52    370.27   71.42    370      72.81    369.85   73.75    369.44   76.61   
+GR 365      107.06   363.84   116.4    363.44   120.08   363.36   277.61   361.69   277.61  
+GR 360.54   279.91   360.52   281.21   360.81   284.01   359.65   285.61   358.43   285.82  
+GR 357.98   286.61   358.4    288.61   358.94   290.41   358.7    293.61   357.55   295.61  
+GR 358.73   296.82   357.66   298.61   358.46   301.01   358.79   303.21   358.68   304.82  
+GR 359.04   306.61   358.87   309.01   360.58   311.32   363.26   311.91   364.05   312.82  
+GR 364.47   314.41   364.96   318.61   365.36   323.61   365.15   376      365.79   380.72  
+GR 366.54   384.97   367.86   393.74   367.89   394.29   367.9    394.63   368.06   395.64  
+GR 368.07   395.73   368.08   395.78   368.83   402.43   368.84   402.48   368.93   403.62  
+GR 369.43   406.03   369.46   407.09   369.47   410.77   369.48   416.72   369.56   417.26  
+GR 369.58   420.39   369.6    422.97   370      442.35   370.44   451.8    370.48   452.46  
+GR 370.62   454.35   370.78   455.26   371.02   459.06   371.71   463.31   371.99   464.6   
+GR 372.14   466.73   372.62   472.42   373.98   480.91   374.35   488.05   375      497.97  
+GR 375.45   501.32   376.96   511.67   377.1    512.86   377.42   515.61   377.49   515.97  
+GR 378.05   519.58   378.12   519.87   379.02   525.57   379.1    525.9    380      531.75  
+GR 380.5    534.53   380.64   535.33   381.23   538.72   381.78   542.5    382.21   545.64  
+GR 385      562.22   386.41   572.88   386.46   573.31   386.55   574.04   386.78   576.38  
+GR 388.36   589.13   388.98   595.1    389.03   595.58   389.05   595.69   390      601.79  
+GR 391.64   613.25   392.46   618.81   392.49   619.01   392.52   619.18   392.53   619.2   
+GR 396.78   650.62   396.99   652.91   399.3    673.41  
+
+[LANDUSES]
+;;               Sweeping   Fraction   Last      
+;;Name           Interval   Available  Swept     
+;;-------------- ---------- ---------- ----------
+ESR              0          0          0         
+GC               0          0          0         
+HDR              0          0          0         
+IND              0          0          0         
+LDR              0          0          0         
+LIC              0          0          0         
+MDR              0          0          0         
+OS               0          0          0         
+WAT              0          0          0         
+
+[COVERAGES]
+;;Subcatchment   Land Use         Percent   
+;;-------------- ---------------- ----------
+2                ESR              1.31      
+2                LDR              39.98     
+2                MDR              6.08      
+2                OS               10.2      
+3                ESR              5.25      
+3                GC               1.085     
+3                HDR              11.5      
+3                IND              0.77      
+3                LDR              11.44     
+3                LIC              0.98      
+3                MDR              2.18      
+3                OS               6.29      
+3                WAT              0.06      
+
+[TIMESERIES]
+;;Name           Date       Time       Value     
+;;-------------- ---------- ---------- ----------
+TS               FILE "Washington_Disaggregate.dat"
+
+[REPORT]
+;;Reporting Options
+INPUT      NO
+CONTROLS   NO
+SUBCATCHMENTS ALL
+NODES ALL
+LINKS ALL
+
+[TAGS]
+
+[MAP]
+DIMENSIONS 0.000 0.000 10000.000 10000.000
+Units      None
+
+[COORDINATES]
+;;Node           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+J1               503.328            6547.421          
+4                503.328            5249.584          
+
+[VERTICES]
+;;Link           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+
+[Polygons]
+;;Subcatchment   X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+2                45.757             8594.010          
+2                37.438             7562.396          
+2                -910.982           7562.396          
+2                -919.301           8594.010          
+3                1950.915           8610.649          
+3                1950.915           7653.910          
+3                969.218            7653.910          
+3                960.899            8610.649          
+
+[SYMBOLS]
+;;Gage           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+1                -769.551           9309.484          
+
