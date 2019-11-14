@@ -79,37 +79,7 @@ OptimizationFunction(SWMMOptFile,
                      initial,
                      lower,
                      upper,
-                     generations = 10,
-                     popsize = 20)
+                     generations = 5,
+                     popsize = 12)
 
-####################################################################
-# 4 - Process optimization data
-####################################################################
 
-# filelist <- list.files(pattern = "^Combination.*\\.xlsx$")
-# files <-
-#   lapply(filelist, read.xlsx, sheetName = "Sheet1", header = TRUE)
-# files <- lapply(files, function(x)
-#   x[-1])
-# n <- length(data.frame(files)) / length(files)
-# Combination <- Reduce(function(...)
-#   merge(..., by = 1:n, all = T), files)
-# write.xlsx(Combination, "Calibration Results.xlsx")
-
-####################################################################
-# 5 - Delete excel files
-####################################################################
-# Which directory?
-mydir <- getwd()
-# What phrase do you want contained in
-# the files to be deleted?
-deletephrase <- "Combinations"
-
-# Look at directory
-dir(mydir)
-# Figure out which files should be deleted
-id <- grep(deletephrase, dir(mydir))
-# Get the full path of the files to be deleted
-todelete <- dir(mydir, full.names = TRUE)[id]
-# DELETE
-#unlink(todelete)

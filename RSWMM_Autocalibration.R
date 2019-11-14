@@ -503,6 +503,7 @@ Objectivefunction<-function(SWMMOptFile,x,OutFile,swmm,Timeseries,StatParameters
   iteration<<-iteration+1
   # print(summaryRow)
   printrow <- data.frame(NSE = Nashsutcliffe, PBias = PercentBias, R2 = linearCorrelation^2)
+  printrow[1,] <- signif(printrow[1,], 3)
   print(printrow)
   # nsga2 seems to expect just the last 3 things
   return (summaryRow[(length(summaryRow)-2):length(summaryRow)])
@@ -534,6 +535,22 @@ OptimizationFunction <- function(SWMMOptFile,OutFile,swmm,Timeseries,StatParamet
              lower.bounds=as.double(optimOpt$lower),
              upper.bounds=as.double(optimOpt$upper),
              constraints=NULL,popsize = popsize)
+}
+
+default_sorter <- function(data, n, nsecol = "Nashsutcliffe", pbcol = "PercentBias") {
+  # Return index of the top result, based on the top n nses and the lowest absolute pbias among those
+  nse <- data[[nsecol]]
+  pbias <- data[[pbcol]]
+  ordering <- order(nse, decreasing = T)
+  apb <- abs(pbias)
+  n <- if (n <= length(nse)) n else length(nse)
+  ordering[order(apb[ordering[1:n]])[1]]
+}
+
+find_optimal <- function(n = 30, file = "Combinations.csv", sorter = default_sorter) {
+  # Sorter: takes file contents and n and returns top result
+  data <- read.csv(file)
+  sorter(data, n)
 }
 
 # Testing
