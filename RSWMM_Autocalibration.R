@@ -1,7 +1,14 @@
 # RSWMM autocalibrator version 0.1
-# Last updated 11/13/2019 by Daniel Philippus at Colorado School of Mines.
+# Last updated 11/14/2019 by Daniel Philippus at Colorado School of Mines.
 #
 # This script automatically runs iterations to calibrate SWMM.
+
+library(ggplot2)
+library(stringr)
+library(readxl)
+library(hydroGOF)
+library(xlsx)
+library(mco)
 
 DEBUG <- FALSE
 
@@ -450,7 +457,113 @@ ParametersBound<-function(ParametersFile){
   return(Bounds)
 }
 
+auto_direct_comparison <- function(SWMMOptFile, OutFile, swmm, ..., plots = T) {
+  # Runs direct comparison with an automatically-determined optimal parameter set.
+  # The most likely argument to be passed on to find_optimal is n = <?>, default is 30,
+  # to specify how many best-NSE-fits to look at.
+  direct_comparison(
+    find_optimal(...),
+    SWMMOptFile,
+    OutFile,
+    swmm,
+    plots = plots
+  )
+}
+
+direct_comparison <- function(n, SWMMOptFile, OutFile, swmm, plots) {
+  # Gets the appropriate parameters from the combinations file
+  combs <- read.csv("Combinations.csv")
+  row <- combs[combs$iteration == n,]
+  # Remove iteration + 3 GOF measures
+  x <- row[-(1:4)]
+  run_direct_comparison(SWMMOptFile, x, OutFile, swmm, plots)
+}
+
+run_direct_comparison <- function(SWMMOptFile, x, OutFile, swmm, plots) {
+  # Given a set of parameters, run SWMM and compare the modeled output
+  # to observed output.  Optionally, plot for comparison.  Return the 
+  # hourly and daily timeseries for both modeled and observed.
+  
+  swmm_dir <- "swmm-files/"
+  SWMMOpt <- ReadSWMMOptFile(SWMMOptFile)
+  Input <- paste0(swmm_dir, OutFile, "_direct.inp")
+  ReplaceCodes <<- replaceCodesInTemplateFile(SWMMOpt,x,as.matrix(Bounds["Code"]),Input)
+  Report <- paste0(swmm_dir, OutFile, "_direct.rpt")
+  Output <- paste0(swmm_dir, OutFile, "_direct.out")
+  SWMMExe(swmm, Input, Report, Output)
+  headObj <- GetObjectsSWMM(Output)
+  headObj <- getSWMMTimes(headObj)
+  # mod: numeric vector (of flows?); corresponding times = headObj$SWMMTimes
+  modQ <- getSWMMTimeSeriesData(headObj,iType,nameInOutputFile,vIndex)
+  mod <- data.frame(Date = headObj$SWMMTimes, Sim = modQ)
+  # Daily timeseries, including observed (list with Date, Sim, Obs)
+  daily <- Aggregate(modQ, headObj)
+  # Columns Date, Flow (5-minute timestep)
+  CalibrationData = read_excel("Observed.xlsx")
+  CalibrationData$Date <- as.character(CalibrationData$Date)
+  hourly <- mod[format(mod$Date, "%M") == "00",]
+  hourly$Obs <- NA
+  for (ix in 1:length(hourly$Date)) {
+    hd <- as.character(hourly$Date[ix])
+    if (hd %in% CalibrationData$Date) hourly$Obs[ix] <- CalibrationData$Flow[CalibrationData$Date == hd]
+  }
+  
+  # By default it is a factor -- doesn't work well with plotting
+  daily$Date <- as.Date(daily$Date)
+  
+  if (plots) {
+  
+    dailyGOF <- data.frame(
+      nse = signif(NSE(daily$Sim, daily$Obs), 4),
+      pbias = signif(pbias(daily$Sim, daily$Obs), 4),
+      r2 = signif(cor(daily$Sim, daily$Obs)^2, 4)
+    )
+    hourlyGOF <- data.frame(
+      nse = signif(NSE(hourly$Sim, hourly$Obs), 4),
+      pbias = signif(pbias(hourly$Sim, hourly$Obs), 4),
+      r2 = signif(cor(hourly$Sim, hourly$Obs)^2, 4)
+    )
+    
+    mk_plot_text <- function(gof) {
+      paste0(
+        "NSE: ", gof$nse, "\n%bias: ", gof$pbias, "\nR2: ", gof$r2
+      )
+    }
+    
+    print("Daily:")
+    print(dailyGOF)
+    plot(daily$Obs + 1, daily$Sim + 1, main = "Daily Sim vs Obs", xlab = "Observed + 1 (cfs)",
+         ylab = "Simulated + 1 (cfs)", log = "xy")
+    text((max(daily$Obs) - min(daily$Obs)) / 2 + min(daily$Obs),
+         (max(daily$Sim) - min(daily$Sim)) * 0.9 + min(daily$Sim),
+         labels = mk_plot_text(dailyGOF))
+    readline("Enter to continue")
+    plot(daily$Date, daily$Obs + 1, main = "Daily Timeseries", xlab = "Date", ylab = "Flow + 1 (cfs)", log = "y")
+    lines(daily$Date, daily$Sim + 1, col = "red")
+    readline("Enter to continue")
+    
+    print("Hourly:")
+    print(hourlyGOF)
+    plot(hourly$Obs + 1, hourly$Sim + 1, main = "Hourly Sim vs Obs", xlab = "Observed + 1 (cfs)",
+         ylab = "Simulated + 1 (cfs)", log = "xy")
+    text((max(hourly$Obs) - min(hourly$Obs)) / 2 + min(hourly$Obs),
+         (max(hourly$Sim) - min(hourly$Sim)) * 0.9 + min(hourly$Sim),
+         labels = mk_plot_text(hourlyGOF))
+    readline("Enter to continue")
+    plot(hourly$Date, hourly$Obs + 1, main = "Hourly Timeseries", xlab = "Date", ylab = "Flow + 1 (cfs)", log = "y")
+    lines(hourly$Date, hourly$Sim + 1, col = "red")
+  }
+  
+  list(hourly = hourly, daily = daily)
+}
+
 Objectivefunction<-function(SWMMOptFile,x,OutFile,swmm,Timeseries,StatParameters){
+  # x: vector of x parameters
+  # SWMMOptFile: DR_Upstream_Opt.inp (template file)
+  # OutFile: DR_Upstream (output file)
+  # swmm: SWMM path
+  # Timeseries: 'Q = getSWMMTimeSeriesData(headObj,iType,nameInOutputFile,vIndex)'
+  # StatParameters: NashsutcliffeTimesMinus1, absBias, negativeRSquared
   swmm_dir <- "swmm-files/"
   print(paste("Iteration:", iteration))
   SWMMOpt= ReadSWMMOptFile(SWMMOptFile)
@@ -563,6 +676,9 @@ testRun <- function() {
                        StatParameters,
                        initial,
                        lower,
-                       upper)
+                       upper,
+                       popsize = 12,
+                       generations = 5)
 }
-if (DEBUG) testRun()
+# DEBUG = T
+if (DEBUG) auto_direct_comparison(SWMMOptFile, OutFile, swmm, n = 10)
