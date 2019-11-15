@@ -508,6 +508,13 @@ run_direct_comparison <- function(SWMMOptFile, x, OutFile, swmm, plots) {
     if (hd %in% CalibrationData$Date) hourly$Obs[ix] <- CalibrationData$Flow[CalibrationData$Date == hd]
   }
   
+  # Possible that all of the obs stays NA.  It won't work if this happens,
+  # so throw an error if it does to tell me about it.
+  if (sum(!is.na(hourly$Obs)) == 0) {
+    stop("in run_direct_comparison: all of the hourly$Obs entries are NA or there are no entries \
+in hourly$Obs.  Most likely cause is that none of the times in hourly$Date exist in the observed data.")
+  }
+  
   # By default it is a factor -- doesn't work well with plotting
   daily$Date <- as.Date(daily$Date)
   
