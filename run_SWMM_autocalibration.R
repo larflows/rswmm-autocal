@@ -1,5 +1,5 @@
 # Version 0.1
-# Last updated 11/13/2019 by Daniel Philippus at Colorado School of Mines.
+# Last updated 11/14/2019 by Daniel Philippus at Colorado School of Mines.
 #
 # Run Nasrin's SWMM calibration script
 # Open RSWMM_Autocalibration.R as well, source on save and save.
@@ -67,6 +67,14 @@ upper <- c(as.vector(Bounds["Maximum"]))$Maximum
 StatParameters <- c("NashsutcliffeTimesMinus1",
                    "absBias",
                    "negativeRSquared")
+# objective_functions: each entry has display_name (what to call it), calc (minimization objective function
+# taking arguments sim and obs), and display_fn (like calc, but for display)
+objective_functions <- list(
+  list(display_name = "NSE", calc = function (sim, obs) -1 * NSE(sim, obs),
+       display_fn = NSE),
+  list(display_name = "pbias", calc = function (sim, obs) abs(pbias(sim, obs)),
+       display_fn = pbias)
+)
 
 ####################################################################
 # 3 - Run code
@@ -75,11 +83,11 @@ OptimizationFunction(SWMMOptFile,
                      OutFile,
                      swmm,
                      Timeseries,
-                     StatParameters,
+                     objective_functions,
                      initial,
                      lower,
                      upper,
-                     generations = 5,
+                     generations = 1,
                      popsize = 12)
 
 

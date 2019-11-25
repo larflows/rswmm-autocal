@@ -564,7 +564,21 @@ in hourly$Obs.  Most likely cause is that none of the times in hourly$Date exist
   list(hourly = hourly, daily = daily)
 }
 
-Objectivefunction<-function(SWMMOptFile,x,OutFile,swmm,Timeseries,StatParameters){
+Objectivefunction<-function(SWMMOptFile,x,OutFile,swmm,Timeseries,
+                            Objectives = list(
+                              list(display_name = "NSE", calc = function (sim, obs) -1 * NSE(sim, obs),
+                                   display_fn = NSE),
+                              list(display_name = "pbias", calc = function (sim, obs) abs(pbias(sim, obs)),
+                                   display_fn = pbias)
+                              , list(display_name = "R2", calc = function(sim, obs) -1 * cor(sim, obs)^2,
+                                 display_fn = cor(sim, obs)^2
+                            ))) {
+  # Objectives should be a list of lists, where each inner list describes an objective
+  # containing: display_name (for printing, spreadsheet, etc)
+  # calc (minimizing objective function for nsga2)
+  # display_fn (function that is displayed)
+  # calc and display_fn both take (sim, obs)
+  #
   # x: vector of x parameters
   # SWMMOptFile: DR_Upstream_Opt.inp (template file)
   # OutFile: DR_Upstream (output file)
@@ -572,7 +586,7 @@ Objectivefunction<-function(SWMMOptFile,x,OutFile,swmm,Timeseries,StatParameters
   # Timeseries: 'Q = getSWMMTimeSeriesData(headObj,iType,nameInOutputFile,vIndex)'
   # StatParameters: NashsutcliffeTimesMinus1, absBias, negativeRSquared
   swmm_dir <- "swmm-files/"
-  print(paste("Iteration:", iteration))
+  # print(paste("Iteration:", iteration))
   SWMMOpt= ReadSWMMOptFile(SWMMOptFile)
   
   Input=paste(swmm_dir, OutFile,"_", iteration,'.inp',sep="")
@@ -588,21 +602,30 @@ Objectivefunction<-function(SWMMOptFile,x,OutFile,swmm,Timeseries,StatParameters
   require(hydroGOF)
   sim = Average$Sim
   obs = Average$Obs
-  MeanError = me(sim,obs)
-  MeanSquaredError = mse(sim,obs)
-  IndexAgreement = d(sim,obs)
-  IndexAgreementTimesMinus1 = -1*IndexAgreement
-  Nashsutcliffe = NSE(sim, obs)
-  NashsutcliffeTimesMinus1 = -1*Nashsutcliffe
+  # MeanError = me(sim,obs)
+  # MeanSquaredError = mse(sim,obs)
+  # IndexAgreement = d(sim,obs)
+  # IndexAgreementTimesMinus1 = -1*IndexAgreement
+  # Nashsutcliffe = NSE(sim, obs)
+  # NashsutcliffeTimesMinus1 = -1*Nashsutcliffe
+  # 
+  # PercentBias = pbias(sim,obs)
+  # absBias <- abs(PercentBias)
+  # 
+  # linearCorrelation = cor(sim,obs)
+  # linearCorrelationTimesMinus1 = -1*linearCorrelation
+  # negativeRSquared <- (-1) * linearCorrelation^2
   
-  PercentBias = pbias(sim,obs)
-  absBias <- abs(PercentBias)
+  # output1=data.frame(iteration = iteration, Nashsutcliffe,PercentBias,R2 = linearCorrelation ^ 2, t(x))
+  output1 = data.frame(iteration = iteration)
+  objective_vals <- NULL
+  for (obj in Objectives) {
+    output1[[obj$display_name]] = obj$display_fn(sim, obs)
+    objective_vals <- c(objective_vals, obj$calc(sim, obs))
+  }
+  printrow <- output1
+  output1 <- data.frame(output1, t(x))
   
-  linearCorrelation = cor(sim,obs)
-  linearCorrelationTimesMinus1 = -1*linearCorrelation
-  negativeRSquared <- (-1) * linearCorrelation^2
-  
-  output1=data.frame(iteration = iteration, Nashsutcliffe,PercentBias,R2 = linearCorrelation ^ 2, t(x))
   
   # library(xlsx)
   # 
@@ -622,15 +645,15 @@ Objectivefunction<-function(SWMMOptFile,x,OutFile,swmm,Timeseries,StatParameters
   names(summaryRow)= c("iteration",paste("Parameter",t(Bounds["Code"]),sep=""),StatParameters)
   iteration<<-iteration+1
   # print(summaryRow)
-  printrow <- data.frame(NSE = Nashsutcliffe, PBias = PercentBias, R2 = linearCorrelation^2)
+  # printrow <- data.frame(NSE = Nashsutcliffe, PBias = PercentBias, R2 = linearCorrelation^2)
   printrow[1,] <- signif(printrow[1,], 3)
   print(printrow)
-  # nsga2 seems to expect just the last 3 things
-  return (summaryRow[(length(summaryRow)-2):length(summaryRow)])
+  # return (summaryRow[(length(summaryRow)-2):length(summaryRow)])
+  objective_vals
   # nsga2 tries to minimize the parameters, so it needs to be set up with lower is better
 }
 
-OptimizationFunction <- function(SWMMOptFile,OutFile,swmm,Timeseries,StatParameters,initial,lower,upper,
+OptimizationFunction <- function(SWMMOptFile,OutFile,swmm,Timeseries,objectives,initial,lower,upper,
                                generations = 200, popsize = 100){
   if (file.exists("Combinations.csv")) file.remove("Combinations.csv")
   if (!dir.exists("swmm-files")) dir.create("swmm-files")
@@ -639,7 +662,7 @@ OptimizationFunction <- function(SWMMOptFile,OutFile,swmm,Timeseries,StatParamet
   optimOpt$SWMMOptFile = SWMMOptFile
   optimOpt$swmm = swmm
   optimOpt$Timeseries = 'Q = getSWMMTimeSeriesData(headObj,iType,nameInOutputFile,vIndex)'
-  optimOpt$StatParameters = StatParameters
+  optimOpt$StatParameters = objectives
   optimOpt$lower = lower
   optimOpt$upper = upper
   library(mco)
@@ -650,14 +673,14 @@ OptimizationFunction <- function(SWMMOptFile,OutFile,swmm,Timeseries,StatParamet
              SWMMOptFile = optimOpt$SWMMOptFile,
              swmm = optimOpt$swmm,
              Timeseries = optimOpt$Timeseries,
-             StatParameters = optimOpt$StatParameters,
+             Objectives = objectives,
              generations=generations,
              lower.bounds=as.double(optimOpt$lower),
              upper.bounds=as.double(optimOpt$upper),
              constraints=NULL,popsize = popsize)
 }
 
-default_sorter <- function(data, n, nsecol = "Nashsutcliffe", pbcol = "PercentBias") {
+default_sorter <- function(data, n, nsecol = "NSE", pbcol = "pbias") {
   # Return index of the top result, based on the top n nses and the lowest absolute pbias among those
   nse <- data[[nsecol]]
   pbias <- data[[pbcol]]
